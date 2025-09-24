@@ -6,13 +6,14 @@ import { HistoryView } from './components/HistoryView';
 import { Onboarding } from './components/Onboarding';
 import { Footer } from './components/Footer';
 import { AdBanner } from './components/AdBanner';
-import { CameraIcon, HistoryIcon } from './components/IconComponents';
+import { CameraIcon, HistoryIcon, ShieldCheckIcon } from './components/IconComponents';
 import { GameModeSwitcher } from './components/GameModeSwitcher';
 import type { ScannedTicket, PrizeInfo, HistoryEntry, Scanned4DTicket, FourDPrizeInfo, AdBlockerStatus } from './types';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { SettingsBar } from './components/SettingsBar';
 import { AdBlockerModal } from './components/AdBlockerModal';
 import { IS_API_KEY_SET } from './services/geminiService';
+
 
 type View = 'scanner' | 'history';
 type GameMode = 'toto' | '4d';
@@ -34,26 +35,6 @@ function App() {
   const [history, setHistory] = useLocalStorage<HistoryEntry[]>('lotteryHistory', []);
   const [adBlockerStatus, setAdBlockerStatus] = useLocalStorage<AdBlockerStatus>('adBlockerStatus', initialAdBlockerStatus);
   const [isAdBlockerModalOpen, setIsAdBlockerModalOpen] = useState(false);
-
-  // CRITICAL: Check if the API key is set. If not, render an error message.
-  if (!IS_API_KEY_SET) {
-    return (
-      <div className="min-h-screen bg-red-50 flex flex-col items-center justify-center p-4 text-center max-w-md mx-auto font-sans">
-        <h1 className="text-3xl font-bold text-red-700">Configuration Error</h1>
-        <p className="mt-4 text-lg text-red-800">The Gemini API Key has not been set up correctly.</p>
-        <div className="mt-6 p-4 bg-red-100 rounded-lg text-left text-base text-red-900 shadow-md">
-          <p className="font-bold">To fix this:</p>
-          <ol className="list-decimal list-inside mt-2 space-y-1">
-            <li>Go to your project's dashboard on Vercel.</li>
-            <li>Navigate to <strong>Settings &gt; Environment Variables</strong>.</li>
-            <li>Ensure you have a variable named exactly <code className="bg-red-200 px-1 py-0.5 rounded font-mono">NEXT_PUBLIC_API_KEY</code>.</li>
-            <li>Paste your Gemini API key as its value.</li>
-            <li>Go to the <strong>Deployments</strong> tab, find the latest deployment, and click <strong>Redeploy</strong>.</li>
-          </ol>
-        </div>
-      </div>
-    );
-  }
 
   const isAdFree = adBlockerStatus.status === 'lifetime' || (adBlockerStatus.status === 'yearly' && adBlockerStatus.expiry && new Date(adBlockerStatus.expiry) > new Date());
 
@@ -137,6 +118,33 @@ function App() {
     setAdBlockerStatus(newStatus);
     setIsAdBlockerModalOpen(false);
   }
+
+  // CRITICAL: Check for API key and render error if not found.
+  // This prevents the blank screen and guides the user to the solution.
+  if (!IS_API_KEY_SET) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="max-w-md mx-auto bg-white shadow-2xl rounded-lg p-8 text-center">
+          <ShieldCheckIcon className="w-16 h-16 mx-auto text-red-500" />
+          <h1 className="text-2xl font-bold text-gray-800 mt-4">Configuration Error</h1>
+          <p className="text-gray-600 mt-2">
+            The Gemini API Key has not been set up correctly.
+          </p>
+          <div className="text-left bg-gray-100 p-4 rounded-lg mt-6 text-sm text-gray-700">
+            <h2 className="font-bold mb-2">To fix this:</h2>
+            <ol className="list-decimal list-inside space-y-2">
+              <li>Go to your project's dashboard on Vercel.</li>
+              <li>Navigate to <strong>Settings &gt; Environment Variables</strong>.</li>
+              <li>Ensure you have a variable named exactly <code className="bg-gray-200 px-1 rounded">NEXT_PUBLIC_API_KEY</code>.</li>
+              <li>Paste your Gemini API key as its value.</li>
+              <li>Go to the <strong>Deployments</strong> tab, find the latest deployment, and click <strong>Redeploy</strong>.</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
 
   const renderView = () => {
     switch (view) {
