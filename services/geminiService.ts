@@ -1,9 +1,9 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { ScannedTicket, Scanned4DTicket } from '../types';
 
-// This is the secure way to handle API keys.
-// The key is loaded from Vercel's environment variables and is not exposed in the code.
-const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
+// This is the secure and CORRECT way for a Vite project to handle API keys.
+// The key is loaded from Vercel's environment variables.
+const API_KEY = import.meta.env.VITE_API_KEY;
 
 export const IS_API_KEY_SET = !!API_KEY;
 
@@ -92,7 +92,7 @@ function fileToGenerativePart(file: File): Promise<{ inlineData: { data: string;
 
 export async function parseTicketImage(imageFile: File): Promise<ScannedTicket> {
   if (!IS_API_KEY_SET) {
-    throw new Error("Gemini API Key is not configured. Please set the NEXT_PUBLIC_API_KEY environment variable in your Vercel project settings.");
+    throw new Error("Gemini API Key is not configured. Please set the VITE_API_KEY environment variable in your Vercel project settings.");
   }
   try {
     const imagePart = await fileToGenerativePart(imageFile);
@@ -143,7 +143,7 @@ export async function parseTicketImage(imageFile: File): Promise<ScannedTicket> 
 
 export async function parse4DTicketImage(imageFile: File): Promise<Scanned4DTicket> {
   if (!IS_API_KEY_SET) {
-    throw new Error("Gemini API Key is not configured. Please set the NEXT_PUBLIC_API_KEY environment variable in your Vercel project settings.");
+    throw new Error("Gemini API Key is not configured. Please set the VITE_API_KEY environment variable in your Vercel project settings.");
   }
   try {
     const imagePart = await fileToGenerativePart(imageFile);
