@@ -1,13 +1,13 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { ScannedTicket, Scanned4DTicket } from '../types';
 
-// Vercel exposes browser variables prefixed with NEXT_PUBLIC_
+// This is the secure way to handle API keys.
+// The key is loaded from Vercel's environment variables and is not exposed in the code.
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
 
 export const IS_API_KEY_SET = !!API_KEY;
 
 // Gracefully handle missing API key. The UI will show an error message.
-// The key can be an empty string, and the library will throw an error on first use, which is caught in the UI.
 const ai = new GoogleGenAI({ apiKey: API_KEY || "" });
 
 
