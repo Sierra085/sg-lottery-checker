@@ -3,7 +3,8 @@ import type { ScannedTicket, Scanned4DTicket } from '../types';
 
 // This is the secure and CORRECT way for a Vite project to handle API keys.
 // The key is loaded from Vercel's environment variables.
-const API_KEY = import.meta.env.VITE_API_KEY;
+// FIX: Cast `import.meta` to `any` to resolve TypeScript error 'Property 'env' does not exist on type 'ImportMeta''. This is a common workaround when Vite's type definitions are not available to TypeScript.
+const API_KEY = (import.meta as any).env.VITE_API_KEY;
 
 export const IS_API_KEY_SET = !!API_KEY;
 
