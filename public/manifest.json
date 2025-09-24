@@ -1,0 +1,27 @@
+{
+  "short_name": "SG Checker",
+  "name": "SG Lottery Checker",
+  "description": "An easy-to-use app to check Singapore TOTO & 4D lottery tickets by scanning them with a phone's camera.",
+  "icons": [
+     {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#b91c1c",
+  "background_color": "#ffffff"
+}

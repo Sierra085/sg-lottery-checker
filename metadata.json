@@ -1,0 +1,7 @@
+{
+  "name": "SG Lottery Checker",
+  "description": "An easy-to-use app designed for everyone, especially the elderly, to check Singapore TOTO and 4D lottery tickets by scanning them with a phone's camera. It provides instant results and keeps a history of your checked tickets.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
