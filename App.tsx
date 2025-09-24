@@ -135,7 +135,7 @@ function App() {
             <ol className="list-decimal list-inside space-y-2">
               <li>Go to your project's dashboard on Vercel.</li>
               <li>Navigate to <strong>Settings &gt; Environment Variables</strong>.</li>
-              <li>Ensure you have a variable named exactly <code className="bg-gray-200 px-1 rounded">NEXT_PUBLIC_API_KEY</code>.</li>
+              <li>Ensure you have a variable named exactly <code className="bg-gray-200 px-1 rounded">VITE_API_KEY</code>.</li>
               <li>Paste your Gemini API key as its value.</li>
               <li>Go to the <strong>Deployments</strong> tab, find the latest deployment, and click <strong>Redeploy</strong>.</li>
             </ol>
