@@ -3,11 +3,14 @@ import type { ScannedTicket, Scanned4DTicket, DrawResult, FourDDrawResult } from
 
 const API_KEY = process.env.API_KEY;
 
-if (!API_KEY) {
-  throw new Error("API_KEY environment variable not set");
-}
+export const IS_API_KEY_SET = !!API_KEY;
 
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+// Initialize ai conditionally. This prevents the app from crashing on startup if the key is missing.
+const ai = IS_API_KEY_SET ? new GoogleGenAI({ apiKey: API_KEY! }) : null;
+
+// A generic error to throw from all functions if the API key is not set
+const apiKeyError = new Error("API Key not configured. Please set the API_KEY environment variable to enable scanning features.");
+
 
 const totoResponseSchema = {
   type: Type.OBJECT,
@@ -89,6 +92,7 @@ function fileToGenerativePart(file: File): Promise<{ inlineData: { data: string;
 }
 
 export async function parseTicketImage(imageFile: File): Promise<ScannedTicket> {
+  if (!ai) throw apiKeyError;
   try {
     const imagePart = await fileToGenerativePart(imageFile);
 
@@ -137,6 +141,7 @@ export async function parseTicketImage(imageFile: File): Promise<ScannedTicket> 
 }
 
 export async function parse4DTicketImage(imageFile: File): Promise<Scanned4DTicket> {
+  if (!ai) throw apiKeyError;
   try {
     const imagePart = await fileToGenerativePart(imageFile);
 
@@ -187,6 +192,7 @@ export async function parse4DTicketImage(imageFile: File): Promise<Scanned4DTick
 // --- Live Result Fetching ---
 
 export async function fetchLiveTotoResult(dateStr: string): Promise<DrawResult | null> {
+    if (!ai) throw apiKeyError;
     console.log(`Performing live fetch for TOTO results for date: ${dateStr}`);
     try {
         const prompt = `Using Google Search, go directly to the Singapore Pools TOTO results page at https://www.singaporepools.com.sg/en/product/pages/toto_results.aspx. Find the winning numbers and the additional number for the draw date: ${dateStr}. The date might be in a dropdown list on the page, often formatted like 'Day, DD Mon YYYY'. Your response MUST be a single, valid JSON object with this exact structure: { "winningNumbers": [int, ...], "additionalNumber": int }. Do not include any other text, markdown formatting, or explanations.`;
@@ -213,11 +219,15 @@ export async function fetchLiveTotoResult(dateStr: string): Promise<DrawResult |
 
     } catch(error) {
         console.error(`Live fetch for TOTO date ${dateStr} failed:`, error);
+        if (error instanceof Error && error.message.includes(apiKeyError.message)) {
+            throw error;
+        }
         throw new Error(`The live search for TOTO results on ${dateStr} failed. The draw may not have happened yet or results are not yet published.`);
     }
 }
 
 export async function fetchLive4DResult(dateStr: string): Promise<FourDDrawResult | null> {
+     if (!ai) throw apiKeyError;
      console.log(`Performing live fetch for 4D results for date: ${dateStr}`);
     try {
         const prompt = `Using Google Search, go directly to the Singapore Pools 4D results page at https://www.singaporepools.com.sg/en/product/pages/4d_results.aspx. Find all winning numbers for the draw date: ${dateStr}. The date might be in a dropdown list on the page, often formatted like 'Day, DD Mon YYYY'. Your response MUST be a single, valid JSON object with this exact structure: { "firstPrize": "string", "secondPrize": "string", "thirdPrize": "string", "starterPrizes": ["string", ...], "consolationPrizes": ["string", ...] }. It is critical that all prize numbers are 4-digit strings to preserve leading zeros (e.g., "0123"). Do not include any other text, markdown, or explanations.`;
@@ -243,6 +253,9 @@ export async function fetchLive4DResult(dateStr: string): Promise<FourDDrawResul
 
     } catch(error) {
         console.error(`Live fetch for 4D date ${dateStr} failed:`, error);
+        if (error instanceof Error && error.message.includes(apiKeyError.message)) {
+            throw error;
+        }
         throw new Error(`The live search for 4D results on ${dateStr} failed. The draw may not have happened yet or results are not yet published.`);
     }
 }
