@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { parseTicketImage, parse4DTicketImage } from '../services/geminiService';
 import { calculateWinnings, getDrawResultByDate } from '../services/totoService';
@@ -18,11 +19,12 @@ const getFriendlyErrorMessage = (error: Error): string => {
    if (error.message.includes('The AI failed to return a valid result')) {
       return "The AI failed to process the image. It might be blurry, angled, or have poor lighting. Please try again."
   }
-  if (error.message.includes('are not available in this demo app')) {
+  // This now catches the new, more user-friendly message from the async service call.
+  if (error.message.includes('could not be found')) {
       return error.message;
   }
   if (error.name === 'TypeError' || error.message.toLowerCase().includes('network') || error.message.toLowerCase().includes('failed to fetch')) {
-      return "Network error connecting to the AI service. Please check your internet connection."
+      return "A network error occurred. Please check your internet connection and try again."
   }
   return `An unexpected error occurred: ${error.message}`;
 };
@@ -74,14 +76,10 @@ export const TicketScanner: React.FC<TicketScannerProps> = ({ gameMode, onCheckR
       }
     } finally {
       setIsLoading(false);
-      // Reset file input to allow selecting the same file again
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
     }
   };
 
-  const handleConfirmAndCheck = useCallback(() => {
+  const handleConfirmAndCheck = useCallback(async () => {
     if (!scannedData) return;
     setIsLoading(true);
     setError(null);
@@ -89,20 +87,21 @@ export const TicketScanner: React.FC<TicketScannerProps> = ({ gameMode, onCheckR
     
     try {
         if (gameMode === 'toto' && 'entries' in scannedData && scannedData.entries[0] && 'numbers' in scannedData.entries[0]) {
-            const drawResult = getDrawResultByDate(scannedData.drawDate);
+            const drawResult = await getDrawResultByDate(scannedData.drawDate);
             if (!drawResult) {
-                throw new Error(`Sorry, the TOTO draw results for ${scannedData.drawDate} are not available in this demo app.`);
+                // More user-friendly error for a "live" app
+                throw new Error(`Sorry, the TOTO draw results for ${scannedData.drawDate} could not be found. Please check the date or try again later.`);
             }
             const prizes: PrizeInfo[] = scannedData.entries.map(entry => 
                 calculateWinnings(entry.numbers, drawResult)
             );
             onCheckResult({ gameMode: 'toto', ticket: scannedData, prize: prizes });
         } else if (gameMode === '4d' && 'entries' in scannedData && scannedData.entries[0] && 'number' in scannedData.entries[0]) {
-            const drawResult = get4DDrawResultByDate(scannedData.drawDate);
+            const drawResult = await get4DDrawResultByDate(scannedData.drawDate);
             if (!drawResult) {
-                throw new Error(`Sorry, the 4D draw results for ${scannedData.drawDate} are not available in this demo app.`);
+                 // More user-friendly error for a "live" app
+                throw new Error(`Sorry, the 4D draw results for ${scannedData.drawDate} could not be found. Please check the date or try again later.`);
             }
-            // FIX: Cast scannedData to Scanned4DTicket because TypeScript cannot infer the narrowed type here.
             const prize = calculate4DWinnings(scannedData as Scanned4DTicket, drawResult);
             onCheckResult({ gameMode: '4d', ticket: scannedData, prize });
         }
@@ -148,6 +147,7 @@ export const TicketScanner: React.FC<TicketScannerProps> = ({ gameMode, onCheckR
        <input
         type="file"
         accept="image/*"
+        capture="environment"
         ref={fileInputRef}
         onChange={handleFileChange}
         className="hidden"
@@ -173,7 +173,7 @@ export const TicketScanner: React.FC<TicketScannerProps> = ({ gameMode, onCheckR
           {isLoading && !isConfirmModalOpen && (
               <div className="absolute inset-0 bg-black bg-opacity-60 flex flex-col items-center justify-center text-white text-xl font-bold transition-opacity duration-300">
                 <Spinner className="w-10 h-10 mb-3" />
-                <span>Scanning...</span>
+                <span>Checking...</span>
               </div>
           )}
         </button>
