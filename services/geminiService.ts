@@ -1,16 +1,13 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import type { ScannedTicket, Scanned4DTicket } from '../types';
+import type { ScannedTicket, Scanned4DTicket, DrawResult, FourDDrawResult } from '../types';
 
-// This is the secure and CORRECT way for a Vite project to handle API keys.
-// The key is loaded from Vercel's environment variables.
-// FIX: Cast `import.meta` to `any` to resolve TypeScript error 'Property 'env' does not exist on type 'ImportMeta''. This is a common workaround when Vite's type definitions are not available to TypeScript.
-const API_KEY = (import.meta as any).env.VITE_API_KEY;
+const API_KEY = process.env.API_KEY;
 
-export const IS_API_KEY_SET = !!API_KEY;
+if (!API_KEY) {
+  throw new Error("API_KEY environment variable not set");
+}
 
-// Gracefully handle missing API key. The UI will show an error message.
-const ai = new GoogleGenAI({ apiKey: API_KEY || "" });
-
+const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 const totoResponseSchema = {
   type: Type.OBJECT,
@@ -92,9 +89,6 @@ function fileToGenerativePart(file: File): Promise<{ inlineData: { data: string;
 }
 
 export async function parseTicketImage(imageFile: File): Promise<ScannedTicket> {
-  if (!IS_API_KEY_SET) {
-    throw new Error("Gemini API Key is not configured. Please set the VITE_API_KEY environment variable in your Vercel project settings.");
-  }
   try {
     const imagePart = await fileToGenerativePart(imageFile);
 
@@ -143,9 +137,6 @@ export async function parseTicketImage(imageFile: File): Promise<ScannedTicket> 
 }
 
 export async function parse4DTicketImage(imageFile: File): Promise<Scanned4DTicket> {
-  if (!IS_API_KEY_SET) {
-    throw new Error("Gemini API Key is not configured. Please set the VITE_API_KEY environment variable in your Vercel project settings.");
-  }
   try {
     const imagePart = await fileToGenerativePart(imageFile);
 
@@ -191,4 +182,67 @@ export async function parse4DTicketImage(imageFile: File): Promise<Scanned4DTick
     }
     throw new Error("An unknown error occurred during 4D ticket scanning.");
   }
+}
+
+// --- Live Result Fetching ---
+
+export async function fetchLiveTotoResult(dateStr: string): Promise<DrawResult | null> {
+    console.log(`Performing live fetch for TOTO results for date: ${dateStr}`);
+    try {
+        const prompt = `Using Google Search, go directly to the Singapore Pools TOTO results page at https://www.singaporepools.com.sg/en/product/pages/toto_results.aspx. Find the winning numbers and the additional number for the draw date: ${dateStr}. The date might be in a dropdown list on the page, often formatted like 'Day, DD Mon YYYY'. Your response MUST be a single, valid JSON object with this exact structure: { "winningNumbers": [int, ...], "additionalNumber": int }. Do not include any other text, markdown formatting, or explanations.`;
+        
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            config: {
+                tools: [{ googleSearch: {} }],
+            },
+        });
+
+        const jsonString = response.text.trim();
+        const parsedResult = JSON.parse(jsonString);
+
+        if (parsedResult.winningNumbers && parsedResult.additionalNumber) {
+            return {
+                drawDate: dateStr,
+                winningNumbers: parsedResult.winningNumbers,
+                additionalNumber: parsedResult.additionalNumber,
+            };
+        }
+        return null;
+
+    } catch(error) {
+        console.error(`Live fetch for TOTO date ${dateStr} failed:`, error);
+        throw new Error(`The live search for TOTO results on ${dateStr} failed. The draw may not have happened yet or results are not yet published.`);
+    }
+}
+
+export async function fetchLive4DResult(dateStr: string): Promise<FourDDrawResult | null> {
+     console.log(`Performing live fetch for 4D results for date: ${dateStr}`);
+    try {
+        const prompt = `Using Google Search, go directly to the Singapore Pools 4D results page at https://www.singaporepools.com.sg/en/product/pages/4d_results.aspx. Find all winning numbers for the draw date: ${dateStr}. The date might be in a dropdown list on the page, often formatted like 'Day, DD Mon YYYY'. Your response MUST be a single, valid JSON object with this exact structure: { "firstPrize": "string", "secondPrize": "string", "thirdPrize": "string", "starterPrizes": ["string", ...], "consolationPrizes": ["string", ...] }. It is critical that all prize numbers are 4-digit strings to preserve leading zeros (e.g., "0123"). Do not include any other text, markdown, or explanations.`;
+        
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            config: {
+                tools: [{ googleSearch: {} }],
+            },
+        });
+
+        const jsonString = response.text.trim();
+        const parsedResult = JSON.parse(jsonString);
+
+        if (parsedResult.firstPrize && parsedResult.starterPrizes) {
+            return {
+                drawDate: dateStr,
+                ...parsedResult,
+            };
+        }
+        return null;
+
+    } catch(error) {
+        console.error(`Live fetch for 4D date ${dateStr} failed:`, error);
+        throw new Error(`The live search for 4D results on ${dateStr} failed. The draw may not have happened yet or results are not yet published.`);
+    }
 }
