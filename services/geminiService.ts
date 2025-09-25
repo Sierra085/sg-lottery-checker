@@ -1,6 +1,8 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { ScannedTicket, Scanned4DTicket, DrawResult, FourDDrawResult } from '../types';
 
+// FIX: Per coding guidelines, API key must be read from process.env.API_KEY.
+// This also resolves the TypeScript error "Property 'env' does not exist on type 'ImportMeta'".
 const API_KEY = process.env.API_KEY;
 
 export const IS_API_KEY_SET = !!API_KEY;
@@ -9,7 +11,8 @@ export const IS_API_KEY_SET = !!API_KEY;
 const ai = IS_API_KEY_SET ? new GoogleGenAI({ apiKey: API_KEY! }) : null;
 
 // A generic error to throw from all functions if the API key is not set
-const apiKeyError = new Error("API Key not configured. Please set the API_KEY environment variable to enable scanning features.");
+// FIX: Updated error message to refer to API_KEY to match the change above.
+const apiKeyError = new Error("API Key not configured. Please set the API_KEY environment variable in your deployment settings to enable scanning features.");
 
 
 const totoResponseSchema = {
