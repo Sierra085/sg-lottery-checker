@@ -2,16 +2,70 @@
 import type { DrawResult, PrizeInfo } from '../types';
 import { TOTO_RESULTS } from '../data/drawResults';
 
-export function getDrawResultByDate(dateStr: string): DrawResult | null {
-  // Simple search, for a real app this would be an API call
-  return TOTO_RESULTS.find(result => result.drawDate === dateStr) || null;
+// In-memory cache to simulate fetching data only once per session
+let cachedTotoResults: DrawResult[] | null = null;
+
+/**
+ * Simulates fetching all TOTO results from an API.
+ * In a real app, this would be a `fetch` call to a backend endpoint.
+ * The result is cached in memory to avoid repeated "network" calls during the same session.
+ */
+async function fetchAllTotoResults(): Promise<DrawResult[]> {
+  // If results are already cached, return them immediately.
+  if (cachedTotoResults) {
+    return cachedTotoResults;
+  }
+
+  // Simulate network delay for the first fetch to mimic a real API call
+  await new Promise(resolve => setTimeout(resolve, 800));
+
+  // In a real app, you would replace this block with a fetch call:
+  // try {
+  //   const response = await fetch('https://your-api-endpoint.com/toto-results');
+  //   if (!response.ok) throw new Error('Network response was not ok');
+  //   const data = await response.json();
+  //   cachedTotoResults = data;
+  // } catch (error) {
+  //   console.error("Failed to fetch TOTO results:", error);
+  //   return []; // Return empty array on failure to prevent app crash
+  // }
+  
+  // For demonstration, we use static data and cache it.
+  cachedTotoResults = TOTO_RESULTS;
+  return cachedTotoResults;
 }
 
-export function getLatestDrawResult(): DrawResult {
+
+/**
+ * Gets the TOTO draw result for a specific date.
+ * @param dateStr The date in 'YYYY-MM-DD' format.
+ * @returns A promise that resolves to the DrawResult or null if not found.
+ */
+export async function getDrawResultByDate(dateStr: string): Promise<DrawResult | null> {
+  const allResults = await fetchAllTotoResults();
+  return allResults.find(result => result.drawDate === dateStr) || null;
+}
+
+/**
+ * Gets the latest available TOTO draw result.
+ * @returns A promise that resolves to the latest DrawResult.
+ */
+export async function getLatestDrawResult(): Promise<DrawResult> {
+    const allResults = await fetchAllTotoResults();
     // Assuming TOTO_RESULTS is sorted with the latest first
-    return TOTO_RESULTS[0];
+    if (allResults.length === 0) {
+        throw new Error("No TOTO results are available.");
+    }
+    return allResults[0];
 }
 
+/**
+ * Calculates the prize for a single TOTO entry based on the draw result.
+ * This is a synchronous function as it's pure logic.
+ * @param numbers The numbers on the ticket entry.
+ * @param drawResult The official draw result for the corresponding date.
+ * @returns A PrizeInfo object detailing the win or loss.
+ */
 export function calculateWinnings(numbers: number[], drawResult: DrawResult): PrizeInfo {
   const userNumbers = new Set(numbers);
   const winningNumbers = new Set(drawResult.winningNumbers);
