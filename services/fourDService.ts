@@ -1,13 +1,61 @@
+
 import type { FourDDrawResult, FourDPrizeInfo, Scanned4DTicket } from '../types';
 import { FOUR_D_RESULTS } from '../data/4dResults';
 import { FourDPrizeCategory } from '../types';
 
-export function get4DDrawResultByDate(dateStr: string): FourDDrawResult | null {
-  return FOUR_D_RESULTS.find(result => result.drawDate === dateStr) || null;
+// In-memory cache to simulate fetching data only once per session
+let cached4DResults: FourDDrawResult[] | null = null;
+
+/**
+ * Simulates fetching all 4D results from an API.
+ * In a real app, this would be a `fetch` call to a backend endpoint.
+ * The result is cached in memory to avoid repeated "network" calls during the same session.
+ */
+async function fetchAll4DResults(): Promise<FourDDrawResult[]> {
+    // If results are already cached, return them immediately.
+    if (cached4DResults) {
+        return cached4DResults;
+    }
+
+    // Simulate network delay for the first fetch to mimic a real API call
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    // In a real app, you would replace this block with a fetch call:
+    // try {
+    //   const response = await fetch('https://your-api-endpoint.com/4d-results');
+    //   if (!response.ok) throw new Error('Network response was not ok');
+    //   const data = await response.json();
+    //   cached4DResults = data;
+    // } catch (error) {
+    //   console.error("Failed to fetch 4D results:", error);
+    //   return []; // Return empty array on failure to prevent app crash
+    // }
+    
+    // For demonstration, we use static data and cache it.
+    cached4DResults = FOUR_D_RESULTS;
+    return cached4DResults;
 }
 
-export function getLatest4DDrawResult(): FourDDrawResult {
-    return FOUR_D_RESULTS[0];
+/**
+ * Gets the 4D draw result for a specific date.
+ * @param dateStr The date in 'YYYY-MM-DD' format.
+ * @returns A promise that resolves to the FourDDrawResult or null if not found.
+ */
+export async function get4DDrawResultByDate(dateStr: string): Promise<FourDDrawResult | null> {
+  const allResults = await fetchAll4DResults();
+  return allResults.find(result => result.drawDate === dateStr) || null;
+}
+
+/**
+ * Gets the latest available 4D draw result.
+ * @returns A promise that resolves to the latest FourDDrawResult.
+ */
+export async function getLatest4DDrawResult(): Promise<FourDDrawResult> {
+    const allResults = await fetchAll4DResults();
+    if (allResults.length === 0) {
+        throw new Error("No 4D results are available.");
+    }
+    return allResults[0];
 }
 
 // Simplified prize structure for demonstration
@@ -26,6 +74,13 @@ const prizeStructure = {
     }
 } as const;
 
+/**
+ * Calculates all winning prizes for a 4D ticket based on the draw result.
+ * This is a synchronous function as it's pure logic.
+ * @param ticket The scanned 4D ticket.
+ * @param drawResult The official draw result for the corresponding date.
+ * @returns An array of FourDPrizeInfo objects for each winning entry.
+ */
 export function calculate4DWinnings(ticket: Scanned4DTicket, drawResult: FourDDrawResult): FourDPrizeInfo[] {
   const winningResults: FourDPrizeInfo[] = [];
 
